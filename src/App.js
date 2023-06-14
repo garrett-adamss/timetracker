@@ -1,29 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import Clock from './Clock';
 
 function App() {
   const [startTime, setStartTime] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date().getTime());
   const [clockedIn, setClockedIn] = useState(false);
   const [pausedTime, setPausedTime] = useState(0);
-
-  useEffect(() => {
-    let intervalId;
-
-    if (clockedIn && !startTime) {
-      setStartTime(new Date().getTime() - pausedTime);
-    }
-
-    if (clockedIn && startTime) {
-      intervalId = setInterval(() => {
-        setCurrentTime(new Date().getTime());
-      }, 1000);
-    }
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [clockedIn, startTime, pausedTime]);
+  const [clockOutTimes, setClockOutTimes] = useState([]);
 
   const handleClockIn = () => {
     if (!clockedIn) {
@@ -47,10 +31,15 @@ function App() {
   };
 
   const handleClockOut = () => {
-    // Handle clock out logic, such as displaying elapsed time and resetting the timer
-    setStartTime(null);
-    setClockedIn(false);
-    setPausedTime(0);
+    if (clockedIn && startTime) {
+      const clockOutTime = new Date();
+      const elapsedMilliseconds = clockOutTime.getTime() - startTime;
+      const formattedTime = formatTime(elapsedMilliseconds);
+      setClockOutTimes(prevTimes => [...prevTimes, formattedTime]);
+      setStartTime(null);
+      setClockedIn(false);
+      setPausedTime(0);
+    }
   };
 
   const formatTime = (ms) => {
@@ -61,10 +50,21 @@ function App() {
 
   const elapsed = startTime ? currentTime - startTime : 0;
 
+  useEffect(() => {
+    let intervalId = setInterval(() => {
+      setCurrentTime(new Date().getTime());
+    }, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Time Clocker</h1>
+        <Clock />
         {clockedIn ? (
           <div>
             <h2>{formatTime(elapsed)}</h2>
@@ -74,7 +74,19 @@ function App() {
             </div>
           </div>
         ) : (
-          <button onClick={handleClockIn}>Clock In</button>
+          <>
+            {clockOutTimes.length > 0 && (
+              <div>
+                <h3>Previous Clock Out Times:</h3>
+                <ul>
+                  {clockOutTimes.map((time, index) => (
+                    <li key={index}>{time}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button onClick={handleClockIn}>Clock In</button>
+          </>
         )}
 
         {!clockedIn && pausedTime > 0 && (
